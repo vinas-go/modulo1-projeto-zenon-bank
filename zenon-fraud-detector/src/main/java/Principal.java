@@ -1,7 +1,6 @@
-import static java.lang.IO.println;
 
 public class Principal {
     public static void main(String[] args) {
-        println("Hola Mundo");
+        System.out.println("Hola Mundo");
     }
 }
