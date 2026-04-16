@@ -1,6 +1,5 @@
-
-public class Principal {
+class Principal {
     public static void main(String[] args) {
-        System.out.println("Hola Mundo");
+        System.out.println("Olá Mundo");
     }
 }
