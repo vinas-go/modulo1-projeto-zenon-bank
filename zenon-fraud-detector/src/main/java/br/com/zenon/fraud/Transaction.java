@@ -6,8 +6,8 @@ public record Transaction(
         String step,
         EnumTransactionType type,
         BigDecimal amount,
-        Client clientOrig,
-        Client clientDest,
+        TransactionCustomer origin,
+        TransactionCustomer recipient,
         boolean isFraud,
         boolean isFlaggedFraud
 ) {
