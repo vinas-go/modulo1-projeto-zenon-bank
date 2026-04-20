@@ -9,11 +9,14 @@ import java.util.Optional;
 
 public class TransactionIngestor {
 
+
+    public static final int MAX_SIZE = 50000;
+
     public List<Transaction> read(String filePath) {
         return readFile(filePath);
     }
 
-    public List<Optional<Transaction>> readOld(String filePath) {
+    public List<Transaction> readOld(String filePath) {
         return readFileOld(filePath);
     }
 
@@ -22,7 +25,7 @@ public class TransactionIngestor {
             List<String> lines = Files.readAllLines(new File(filePath).toPath());
             return lines.stream()
                     .skip(1)
-                    .limit(20)
+                    .limit(MAX_SIZE)
                     .map(this::parseTransaction)
                     .filter(Optional::isPresent)
                     .map(Optional::get)
@@ -32,8 +35,8 @@ public class TransactionIngestor {
         }
     }
 
-    private List<Optional<Transaction>> readFileOld(String filePath) {
-        List<Optional<Transaction>> listaTransactions = new ArrayList<>();
+    private List<Transaction> readFileOld(String filePath) {
+        List<Transaction> listaTransactions = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             br.readLine(); // Skip header
             extractValues(br, listaTransactions);
@@ -43,15 +46,15 @@ public class TransactionIngestor {
         return listaTransactions;
     }
 
-    private void extractValues(BufferedReader br, List<Optional<Transaction>> listaTransactions) throws IOException {
+    private void extractValues(BufferedReader br, List<Transaction> listaTransactions) throws IOException {
         String line;
         int count = 0;
         while ((line = br.readLine()) != null) {
             count++;
-            if (count > 20) {
+            if (count > MAX_SIZE) {
                 break;
             }
-            listaTransactions.add(this.parseTransaction(line));
+            listaTransactions.add(this.parseTransaction(line).get());
         }
     }
 
