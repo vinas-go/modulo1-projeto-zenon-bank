@@ -10,7 +10,7 @@ import java.util.Optional;
 public class TransactionIngestor {
 
 
-    public static final int MAX_SIZE = 50000;
+    public static final int MAX_SIZE = 50_000;
 
     public List<Transaction> read(String filePath) {
         return readFile(filePath);
