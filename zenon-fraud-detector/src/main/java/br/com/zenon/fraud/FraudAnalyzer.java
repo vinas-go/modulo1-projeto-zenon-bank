@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 public class FraudAnalyzer {
 
-    List<Transaction> transactions;
+    private final List<Transaction> transactions;
 
     public FraudAnalyzer(List<Transaction> transactions) {
         if (transactions == null) {
