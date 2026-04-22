@@ -5,11 +5,15 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class TransactionReport {
 
-    private record ReportTransaction(BigDecimal amount, boolean isFraud){};
+    private record ReportTransaction(BigDecimal amount, boolean isFraud) {
+    }
+
+    ;
 
     public final int MAX_SIZE = 100_000;
     private final String filePath;
@@ -34,23 +38,28 @@ public class TransactionReport {
     public long countFrauds() {
         return readFile()
                 .skip(1)
-                .map(line -> line.split(","))
-                .filter(fields -> fields[9].equals("1"))
+                .map(this::parseReportTransaction)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .filter(reportTransaction -> reportTransaction.isFraud)
                 .count();
     }
 
     public BigDecimal totalOfTransactions() {
         return readFile()
                 .skip(1)
-                .map(line -> line.split(","))
-                .filter(fields -> fields[9].equals("1"))
-                .reduce(BigDecimal.ZERO, (total, fields) -> total.add(new BigDecimal(fields[2])), BigDecimal::add);
+                .map(this::parseReportTransaction)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .filter(reportTransaction -> reportTransaction.isFraud)
+                .map(ReportTransaction::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-
-//    private ReportTransaction parseReportTransaction(String line){
-//        return new ReportTransaction();
-//    }
+    private Optional<ReportTransaction> parseReportTransaction(String line) {
+        String[] array = line.split(",");
+        return Optional.of(new ReportTransaction(new BigDecimal(array[2]), array[9].equals("1")));
+    }
 
 
 }
