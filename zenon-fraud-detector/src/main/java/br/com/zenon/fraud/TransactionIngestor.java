@@ -8,11 +8,14 @@ import java.util.stream.Collectors;
 
 public class TransactionIngestor {
 
-
-    public static final int MAX_SIZE = 100_000;
+    public static final int MAX_SIZE = 10_000;
 
     public List<Transaction> read(String filePath) {
-        return readFile(filePath);
+        return readFile(filePath, MAX_SIZE);
+    }
+
+    public List<Transaction> read(String filePath, Integer maxSize) {
+        return readFile(filePath, maxSize);
     }
 
     public List<Transaction> readOld(String filePath) {
@@ -23,12 +26,13 @@ public class TransactionIngestor {
         return readFileMap(filePath);
     }
 
-    private List<Transaction> readFile(String filePath) {
+    private List<Transaction> readFile(String filePath, int maxSize) {
+        Objects.requireNonNull(maxSize, "maxSize não pode ser nulo");
         try {
             List<String> lines = Files.readAllLines(new File(filePath).toPath());
             return lines.stream()
                     .skip(1)
-                    .limit(MAX_SIZE)
+                    .limit(maxSize)
                     .map(this::parseTransaction)
                     .filter(Optional::isPresent)
                     .map(Optional::get)

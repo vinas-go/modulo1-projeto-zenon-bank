@@ -48,7 +48,7 @@ class Principal {
 
         TransactionRepository repository = new TransactionListRepository(lista);
         long t1 = System.nanoTime();
-        repository.findByName(cliente3).ifPresentOrElse(
+        repository.findByOriginName(cliente3).ifPresentOrElse(
                 System.out::println,
                 () -> System.out.println("Transação não encontrada para o cliente " + cliente3)
         );
@@ -58,7 +58,7 @@ class Principal {
 
         repository = new TransactionMapRepository(lista);
         t1 = System.nanoTime();
-        repository.findByName(cliente3).ifPresentOrElse(
+        repository.findByOriginName(cliente3).ifPresentOrElse(
                 System.out::println,
                 () -> System.out.println("Transação não encontrada para o cliente " + cliente3)
         );
