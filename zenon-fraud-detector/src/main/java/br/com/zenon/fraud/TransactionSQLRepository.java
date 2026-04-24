@@ -1,9 +1,6 @@
 package br.com.zenon.fraud;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Optional;
 
 public class TransactionSQLRepository implements TransactionRepository {
@@ -11,29 +8,28 @@ public class TransactionSQLRepository implements TransactionRepository {
 
     @Override
     public Optional<Transaction> findByOriginName(String originName) {
-        var statement = (java.sql.PreparedStatement) null;
-        try (Connection conexao = connect()) {
-            String sql = "SELECT step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig, nameDest, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud FROM  transactions WHERE nameOrig = ?";
-            statement = conexao.prepareStatement(sql);
+
+        String sql = "SELECT step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig, nameDest, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud FROM  transactions WHERE nameOrig = ? LIMIT 1";
+        try (
+                var conexao = getConnection();
+                var statement = conexao.prepareStatement(sql);
+        ) {
             statement.setString(1, originName);
-            ResultSet rs = statement.executeQuery();
-            if (rs.next()) {
-                return Optional.of(getValue(rs));
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to save transaction", e);
-        } finally {
-            try {
-                statement.close();
+            try (ResultSet rs = statement.executeQuery();) {
+                if (rs.next()) {
+                    return Optional.of(mapResultSetToTransaction(rs));
+                }
             } catch (Exception e) {
-                throw new RuntimeException("Failed to close statement", e);
+                throw new RuntimeException("Failed to execute query", e);
             }
 
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to save transaction", e);
         }
         return Optional.empty();
     }
 
-    private static Transaction getValue(ResultSet rs) throws SQLException {
+    private static Transaction mapResultSetToTransaction(ResultSet rs) throws SQLException {
         return new Transaction(
                 rs.getInt("step"),
                 EnumTransactionType.valueOf(rs.getString("type")),
@@ -55,10 +51,12 @@ public class TransactionSQLRepository implements TransactionRepository {
 
     @Override
     public void save(Transaction transaction) {
-        var statement = (java.sql.PreparedStatement) null;
-        try (Connection conexao = connect()) {
-            String sql = "INSERT INTO transactions (step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig, nameDest, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)";
-            statement = conexao.prepareStatement(sql);
+        String sql = "INSERT INTO transactions (step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig, nameDest, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)";
+        try (
+                var conexao = getConnection();
+                var statement = conexao.prepareStatement(sql);
+        ) {
+
             statement.setInt(1, transaction.step());
             statement.setString(2, transaction.type().name());
             statement.setBigDecimal(3, transaction.amount());
@@ -73,17 +71,10 @@ public class TransactionSQLRepository implements TransactionRepository {
             statement.executeUpdate();
         } catch (Exception e) {
             throw new RuntimeException("Failed to save transaction", e);
-        } finally {
-            try {
-                statement.close();
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to close statement", e);
-            }
-
         }
     }
 
-    private Connection connect() {
+    private Connection getConnection() {
         String url = "jdbc:postgresql://localhost:5432/zenon";
         String usuario = "postgres";
         String senha = "123";
