@@ -1,10 +1,25 @@
 package br.com.zenon.fraud;
 
 import java.sql.*;
+import java.util.List;
 import java.util.Optional;
 
 public class TransactionSQLRepository implements TransactionRepository {
 
+    public static final int JDBC_BATCH_SIZE = 5_000;
+
+    private Connection getConnection() {
+        String url = "jdbc:postgresql://localhost:5432/zenon";
+        String usuario = "postgres";
+        String senha = "123";
+        try {
+            Connection conexao = DriverManager.getConnection(url, usuario, senha);
+            Class.forName("org.postgresql.Driver");
+            return conexao;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load PostgreSQL driver", e);
+        }
+    }
 
     @Override
     public Optional<Transaction> findByOriginName(String originName) {
@@ -74,16 +89,47 @@ public class TransactionSQLRepository implements TransactionRepository {
         }
     }
 
-    private Connection getConnection() {
-        String url = "jdbc:postgresql://localhost:5432/zenon";
-        String usuario = "postgres";
-        String senha = "123";
-        try {
-            Connection conexao = DriverManager.getConnection(url, usuario, senha);
-            Class.forName("org.postgresql.Driver");
-            return conexao;
+    public void saveAll(List<Transaction> transactions) {
+        String sql = "INSERT INTO transactions (step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig, nameDest, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)";
+        try (var conn = getConnection()) {
+            conn.setAutoCommit(false);
+            int count = 0;
+            try (var ps = conn.prepareStatement(sql)) {
+                for (Transaction transaction : transactions) {
+                    ps.setInt(1, transaction.step());
+                    ps.setString(2, transaction.type().name());
+                    ps.setBigDecimal(3, transaction.amount());
+                    ps.setString(4, transaction.origin().name());
+                    ps.setBigDecimal(5, transaction.origin().oldBalance());
+                    ps.setBigDecimal(6, transaction.origin().newBalance());
+                    ps.setString(7, transaction.recipient().name());
+                    ps.setBigDecimal(8, transaction.recipient().oldBalance());
+                    ps.setBigDecimal(9, transaction.recipient().newBalance());
+                    ps.setBoolean(10, transaction.isFraud());
+                    ps.setBoolean(11, transaction.isFlaggedFraud());
+                    //System.out.println("Adicionando nova transacao no batch...");
+                    ps.addBatch();
+                    count++;
+                    if (count % JDBC_BATCH_SIZE == 0) {
+                        System.out.println("Executando batch...");
+                        ps.executeBatch();
+                        conn.commit();
+                    }
+                }
+                System.out.println("Executando o batch final...");
+                ps.executeBatch();
+                conn.commit();
+                conn.setAutoCommit(true);
+            } catch (Exception e) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+                throw new RuntimeException("Falha ao salvar a transaction", e);
+            }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load PostgreSQL driver", e);
+            throw new RuntimeException("Erro na conexão com o BD...", e);
         }
     }
 }
